@@ -1,0 +1,161 @@
+:root {
+  --ink: #0d0d0b;
+  --green: #6a8e01;
+  --paper: #ffffff;
+  --muted: #6b6b66;
+  --line: #e4e4de;
+  --red: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  line-height: 1.4;
+}
+
+h1, p { margin: 0; }
+h1 { font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.dot { color: var(--green); }
+.logo { display: block; height: auto; }
+[hidden] { display: none !important; }
+
+button {
+  font: inherit;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--ink);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+button:hover { background: var(--green); }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+button.quiet {
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+}
+button.quiet:hover { color: var(--red); border-color: var(--red); }
+
+/* ---------- Attendee page ---------- */
+
+.ask main {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3rem;
+}
+.ask .logo { width: 11rem; margin-bottom: 2.75rem; }
+.ask h1 { font-size: 2.6rem; }
+.ask .hint { color: var(--muted); margin: 0.6rem 0 1.5rem; font-size: 1.05rem; }
+
+textarea {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  font: inherit;
+  font-size: 1.15rem; /* 16px or more stops iOS zooming on focus */
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  resize: vertical;
+}
+textarea::placeholder { color: #9a9a94; }
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 1.5rem;
+  margin: 0.5rem 0.25rem 1.25rem;
+  font-size: 0.9rem;
+}
+.count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.error { color: var(--red); font-weight: 600; text-align: right; }
+
+.ask button { width: 100%; padding: 1.05rem 1.5rem; font-size: 1.15rem; }
+
+/* ---------- Host page (projected) ---------- */
+
+.host { font-size: clamp(16px, 1.25vw, 28px); }
+
+.host header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem 3rem;
+  border-bottom: 2px solid var(--ink);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 1;
+}
+.host .logo { width: 16rem; }
+.join { display: flex; align-items: center; gap: 1.5rem; text-align: right; }
+.join-label { color: var(--muted); font-size: 1.1rem; font-weight: 600; }
+.join-url { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.qr { width: 7.5rem; height: 7.5rem; display: block; }
+
+.host main { padding: 2rem 3rem 4rem; }
+.bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.host h1 { font-size: 1.3rem; letter-spacing: 0; color: var(--muted); font-weight: 700; }
+.host h1 #total { color: var(--green); }
+
+.empty {
+  margin-top: 12vh;
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.4rem 0 1.4rem 1.5rem;
+  border-top: 1px solid var(--line);
+  border-left: 0.4rem solid transparent;
+}
+.list li p {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.list li.new { animation: arrive 6s ease-out; }
+.remove { flex: none; margin-top: 0.4rem; }
+
+@keyframes arrive {
+  0%, 70% { border-left-color: var(--green); background: #f3f7e6; }
+  100% { border-left-color: transparent; background: transparent; }
+}
+
+@media (max-width: 800px) {
+  .host header, .host main { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .host .logo { width: 9rem; }
+  .join-url { font-size: 1.3rem; }
+  .qr { width: 4.5rem; height: 4.5rem; }
+  .list li p { font-size: 1.4rem; }
+  .empty { font-size: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list li.new { animation: none; }
+}

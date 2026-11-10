@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Questions | TheABCs.ai</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="host">
+<header>
+  <img class="logo" src="/logo.png" alt="TheABCs.ai" width="1200" height="182">
+  <div class="join">
+    <div>
+      <p class="join-label">Ask a question at</p>
+      <p class="join-url">questions.theabcs<span class="dot">.ai</span></p>
+    </div>
+    <img class="qr" src="/qr.svg" alt="QR code for questions.theabcs.ai" width="200" height="200">
+  </div>
+</header>
+
+<main>
+  <div class="bar">
+    <h1><span id="total">0</span> <span id="noun">questions</span></h1>
+    <button id="clear" class="quiet" type="button" hidden>Clear all</button>
+  </div>
+  <p id="empty" class="empty">No questions yet<span class="dot">.</span><br>Scan the code to ask the first one.</p>
+  <ol id="list" class="list"></ol>
+</main>
+
+<script>
+const list = document.getElementById("list");
+const empty = document.getElementById("empty");
+const total = document.getElementById("total");
+const noun = document.getElementById("noun");
+const clear = document.getElementById("clear");
+
+// Optional moderation: open /host?key=YOUR_HOST_KEY to get delete controls.
+const key = new URLSearchParams(location.search).get("key") || "";
+const headers = key ? { "x-host-key": key } : {};
+const nodes = new Map();
+let firstLoad = true;
+
+function render({ questions, canModerate }) {
+  clear.hidden = !canModerate || questions.length === 0;
+  total.textContent = questions.length;
+  noun.textContent = questions.length === 1 ? "question" : "questions";
+  empty.hidden = questions.length > 0;
+
+  const live = new Set(questions.map((q) => q.id));
+  for (const [id, node] of nodes) {
+    if (!live.has(id)) {
+      node.remove();
+      nodes.delete(id);
+    }
+  }
+
+  // Questions arrive newest first, so walk oldest to newest and prepend anything new.
+  for (const q of [...questions].reverse()) {
+    if (nodes.has(q.id)) continue;
+    const item = document.createElement("li");
+    if (!firstLoad) item.className = "new";
+    const body = document.createElement("p");
+    body.textContent = q.text;
+    item.append(body);
+    if (canModerate) {
+      const remove = document.createElement("button");
+      remove.className = "quiet remove";
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", async () => {
+        await fetch(`/api/questions/${q.id}`, { method: "DELETE", headers });
+        refresh();
+      });
+      item.append(remove);
+    }
+    list.prepend(item);
+    nodes.set(q.id, item);
+  }
+  firstLoad = false;
+}
+
+async function refresh() {
+  try {
+    const response = await fetch("/api/questions", { headers, cache: "no-store" });
+    if (response.ok) render(await response.json());
+  } catch {
+    // Network blip: keep what is on screen and try again on the next tick.
+  }
+}
+
+clear.addEventListener("click", async () => {
+  if (!confirm("Remove every question?")) return;
+  await fetch("/api/questions", { method: "DELETE", headers });
+  refresh();
+});
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

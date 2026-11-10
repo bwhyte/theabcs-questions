@@ -1,0 +1,17 @@
+{
+  "name": "theabcs-questions",
+  "version": "1.0.0",
+  "description": "Anonymous audience questions for TheABCs.ai workshops",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^4.160.0"
+  },
+  "private": true,
+  "type": "module"
+}

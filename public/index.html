@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>Ask a question | TheABCs.ai</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="ask">
+<main>
+  <img class="logo" src="/logo.png" alt="TheABCs.ai" width="1200" height="182">
+
+  <form id="form" novalidate>
+    <h1><label for="text">Ask a question<span class="dot">.</span></label></h1>
+    <p class="hint">It's anonymous. Your question will appear on the big screen.</p>
+    <textarea id="text" name="text" rows="5" maxlength="300" placeholder="Type your question here" required></textarea>
+    <div class="row">
+      <span id="count" class="count">0 / 300</span>
+      <span id="error" class="error" role="alert"></span>
+    </div>
+    <button id="send" type="submit">Send question</button>
+  </form>
+
+  <section id="done" hidden>
+    <h1>Thank you<span class="dot">.</span></h1>
+    <p class="hint">Your question is on the screen.</p>
+    <button id="again" type="button">Ask another question</button>
+  </section>
+</main>
+
+<script>
+const form = document.getElementById("form");
+const done = document.getElementById("done");
+const text = document.getElementById("text");
+const count = document.getElementById("count");
+const error = document.getElementById("error");
+const send = document.getElementById("send");
+
+text.addEventListener("input", () => {
+  count.textContent = `${text.value.length} / 300`;
+  error.textContent = "";
+});
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!text.value.trim()) {
+    error.textContent = "Please write a question first.";
+    text.focus();
+    return;
+  }
+  send.disabled = true;
+  send.textContent = "Sending…";
+  try {
+    const response = await fetch("/api/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: text.value }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Something went wrong. Please try again.");
+    }
+    text.value = "";
+    count.textContent = "0 / 300";
+    form.hidden = true;
+    done.hidden = false;
+  } catch (err) {
+    error.textContent = err instanceof TypeError ? "No connection. Please try again." : err.message;
+  } finally {
+    send.disabled = false;
+    send.textContent = "Send question";
+  }
+});
+
+document.getElementById("again").addEventListener("click", () => {
+  done.hidden = true;
+  form.hidden = false;
+  text.focus();
+});
+</script>
+</body>
+</html>
