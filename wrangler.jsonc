@@ -9,8 +9,10 @@
     "html_handling": "auto-trailing-slash",
     "run_worker_first": ["/api/*"]
   },
-  "durable_objects": {
-    "bindings": [{ "name": "BOARD", "class_name": "QuestionBoard" }]
+  "vars": {
+    "SUPABASE_URL": "https://bntmsboxsjbxnkcbjbvp.supabase.co",
+    // Publishable key: safe to commit. Row level security limits it to reading and adding questions.
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_V3pSpFuGBrxIgW0fmeYM9g_VgC5NPfI"
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuestionBoard"] }]
 }

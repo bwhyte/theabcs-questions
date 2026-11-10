@@ -5,7 +5,7 @@ A very small app for taking anonymous questions during a workshop.
 - `/` is the attendee page: one box, one button, no name or email.
 - `/host` is the page to project. It lists the questions, newest first, and refreshes every two seconds.
 
-It runs as a single Cloudflare Worker. Questions are stored in a Durable Object (built-in SQLite), so there is no database to create.
+It runs as a single Cloudflare Worker. Questions are stored in the `public.questions` table of the `theabcs` Supabase project. The project URL and publishable key are in `wrangler.jsonc`; row level security limits that key to reading and adding questions.
 
 ## Deploy with Cloudflare
 
@@ -25,7 +25,12 @@ npx wrangler deploy
 
 ## Removing questions (optional)
 
-By default nobody can delete anything. To switch on moderation, add a secret called `HOST_KEY` (Worker **Settings > Variables and Secrets**, or `npx wrangler secret put HOST_KEY`) and open:
+By default the app cannot delete anything, although you can always delete rows in the Supabase table editor. To switch on moderation in the app, add two secrets to the Worker (**Settings > Variables and Secrets**, or `npx wrangler secret put NAME`):
+
+- `HOST_KEY`: any password you choose
+- `SUPABASE_SECRET_KEY`: the secret key from the Supabase project's **Settings > API keys**
+
+Then open:
 
 ```
 https://questions.theabcs.ai/host?key=YOUR_HOST_KEY
@@ -43,9 +48,9 @@ npm install
 npm run dev
 ```
 
-For local moderation, create a `.dev.vars` file containing `HOST_KEY=anything`.
+For local moderation, create a `.dev.vars` file containing `HOST_KEY` and `SUPABASE_SECRET_KEY`.
 
 ## Notes
 
-- Questions are limited to 300 characters and the list to 1,000 questions.
+- Questions are limited to 300 characters and the host page shows the latest 1,000.
 - The QR code on the host page (`public/qr.svg`) points at `https://questions.theabcs.ai`. Regenerate it if the address changes.

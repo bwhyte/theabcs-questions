@@ -1,41 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 
 const MAX_LENGTH = 300;
-const MAX_QUESTIONS = 1000;
 
-// One Durable Object holds every question for the session in its own SQLite database.
-export class QuestionBoard extends DurableObject {
-  constructor(ctx, env) {
-    super(ctx, env);
-    this.sql = ctx.storage.sql;
-    this.sql.exec(
-      `CREATE TABLE IF NOT EXISTS questions (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         text TEXT NOT NULL,
-         created_at INTEGER NOT NULL
-       )`
-    );
-  }
-
-  list() {
-    return this.sql.exec("SELECT id, text, created_at FROM questions ORDER BY id DESC").toArray();
-  }
-
-  add(text) {
-    const { n } = this.sql.exec("SELECT COUNT(*) AS n FROM questions").one();
-    if (n >= MAX_QUESTIONS) return false;
-    this.sql.exec("INSERT INTO questions (text, created_at) VALUES (?, ?)", text, Date.now());
-    return true;
-  }
-
-  remove(id) {
-    this.sql.exec("DELETE FROM questions WHERE id = ?", id);
-  }
-
-  clear() {
-    this.sql.exec("DELETE FROM questions");
-  }
-}
+// Questions used to live in this Durable Object. They are now in Supabase.
+// The empty class stays so the earlier data is kept until it is removed on purpose.
+export class QuestionBoard extends DurableObject {}
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -43,20 +12,40 @@ const json = (data, status = 200) =>
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 
-// Moderation (delete and clear) only works when a HOST_KEY secret is set and supplied.
+// Calls the Supabase REST API for the public.questions table.
+const supabase = (env, key, query, init = {}) =>
+  fetch(`${env.SUPABASE_URL}/rest/v1/questions${query}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`,
+      "content-type": "application/json",
+      ...init.headers,
+    },
+  });
+
+// Moderation (delete and clear) needs a HOST_KEY secret, supplied by the host page,
+// plus a SUPABASE_SECRET_KEY secret because the publishable key cannot delete rows.
 const isHost = (request, env) => {
   const key = request.headers.get("x-host-key");
-  return Boolean(env.HOST_KEY) && key === env.HOST_KEY;
+  return Boolean(env.HOST_KEY && env.SUPABASE_SECRET_KEY) && key === env.HOST_KEY;
 };
+
+const unavailable = () => json({ error: "Something went wrong. Please try again." }, 502);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const board = env.BOARD.get(env.BOARD.idFromName("main"));
 
     if (url.pathname === "/api/questions") {
       if (request.method === "GET") {
-        return json({ questions: await board.list(), canModerate: isHost(request, env) });
+        const response = await supabase(
+          env,
+          env.SUPABASE_PUBLISHABLE_KEY,
+          "?select=id,text,created_at&order=id.desc&limit=1000"
+        );
+        if (!response.ok) return unavailable();
+        return json({ questions: await response.json(), canModerate: isHost(request, env) });
       }
 
       if (request.method === "POST") {
@@ -71,22 +60,27 @@ export default {
         if (text.length > MAX_LENGTH) {
           return json({ error: `Please keep it under ${MAX_LENGTH} characters.` }, 400);
         }
-        if (!(await board.add(text))) return json({ error: "The question list is full." }, 429);
+        const response = await supabase(env, env.SUPABASE_PUBLISHABLE_KEY, "", {
+          method: "POST",
+          headers: { prefer: "return=minimal" },
+          body: JSON.stringify({ text }),
+        });
+        if (!response.ok) return unavailable();
         return json({ ok: true }, 201);
       }
 
       if (request.method === "DELETE") {
         if (!isHost(request, env)) return json({ error: "Not allowed." }, 403);
-        await board.clear();
-        return json({ ok: true });
+        const response = await supabase(env, env.SUPABASE_SECRET_KEY, "?id=gt.0", { method: "DELETE" });
+        return response.ok ? json({ ok: true }) : unavailable();
       }
     }
 
     const match = url.pathname.match(/^\/api\/questions\/(\d+)$/);
     if (match && request.method === "DELETE") {
       if (!isHost(request, env)) return json({ error: "Not allowed." }, 403);
-      await board.remove(Number(match[1]));
-      return json({ ok: true });
+      const response = await supabase(env, env.SUPABASE_SECRET_KEY, `?id=eq.${match[1]}`, { method: "DELETE" });
+      return response.ok ? json({ ok: true }) : unavailable();
     }
 
     return json({ error: "Not found." }, 404);
